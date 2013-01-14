@@ -28,7 +28,7 @@
 
   ;; Variables
   (:export
-   #:*jenkins-base-url*
+   #:*base-url*
    #:*username*
    #:*password*)
 
