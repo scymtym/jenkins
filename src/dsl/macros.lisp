@@ -1,6 +1,6 @@
-;;; dsl.lisp ---
+;;; macros.lisp --- Macro-based DSL for Jenkins jobs.
 ;;
-;; Copyright (C) 2012 Jan Moringen
+;; Copyright (C) 2012, 2013 Jan Moringen
 ;;
 ;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 ;;
@@ -22,7 +22,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun make-template-name (name)
     "TODO(jmoringe): document"
-    (symbolicate '#:+ name '#:-template+)))
+    (format-symbol #.*package* "+~A-TEMPLATE+" name)))
 
 (defmacro define-template (name xml)
   "TODO(jmoringe): document"
@@ -197,7 +197,7 @@
 	    (check-type name symbol)
 
 	    (let ((accessor-name (find-accessor class-name name)))
-	      `(setf (,accessor-name ,node) (flatten (list ,@specs)))))))
+	      `(setf (,accessor-name ,node) (list ,@specs))))))
    `(let ((,node (make-instance ',class-name
 			       :id   ,name
 			       :data (stp:copy ,template-name))))
@@ -209,65 +209,48 @@
       (xloc:->xml ,node (stp:root (jenkins.api::%data ,node)) ',class-name)
       ,node)))
 
-(defmacro git ((&rest attributes &key &allow-other-keys))
-  "TODO(jmoringe): document"
-  ;;; TODO(jmoringe, 2012-12-12): kind
-  (let+ ((class-name    'jenkins.api:scm/git)
-	 (template-name (make-template-name '#:scm/git))
-	 ((&with-gensyms node))
-	 ((&flet process-attribute (name value)
-	    (check-type name symbol)
 
-	    (let ((accessor-name (or (find-symbol (string name) :jenkins.api)
-				     (error "~@<Unknown ~S attribute: ~S.~@:>"
-					    class-name name))))
-	      `(setf (,accessor-name ,node) ,value)))))
-    `(let ((,node (make-instance 'jenkins.api:scm/git
-				 ;; :data ,template-name
-				 )))
-       #+no(xloc:xml-> (stp:root ,template-name) ,node)
-       ,@(iter (for (name value) on attributes :by #'cddr)
-	       (collect (process-attribute name value)))
-       ,node)))
+(defmacro define-model-class-macro ((name
+				     &key
+				     (class-name name)))
+  "Define a macro named NAME which accepts attributes as a plist and
+returns an instance of the model class CLASS-NAME."
+  `(progn
+     (defmacro ,name ((&rest attributes &key &allow-other-keys))
+       "TODO(jmoringe): document"
+       ;; TODO(jmoringe, 2012-12-12): kind
+       (let+ (((&with-gensyms node))
+	      ((&flet process-attribute (name value)
+		 (check-type name symbol)
 
-(defmacro shell ((&rest attributes &key &allow-other-keys))
-  "TODO(jmoringe): document"
-  ;;; TODO(jmoringe, 2012-12-12): kind
-  (let+ ((class-name    'jenkins.api:builder/shell)
-	 (template-name (make-template-name '#:builder/shell))
-	 ((&with-gensyms node))
-	 ((&flet process-attribute (name value)
-	    (check-type name symbol)
+		 (let ((accessor-name (find-accessor ',class-name name)))
+		   `(setf (,accessor-name ,node) ,value)))))
+	 `(let ((,node (make-instance ',',class-name)))
+	    ,@(iter (for (name value) on attributes :by #'cddr)
+		    (collect (process-attribute name value)))
+	    ,node)))
+     (export ',name)))
 
-	    (let ((accessor-name (or (find-symbol (string name) :jenkins.api)
-				     (error "~@<Unknown ~S attribute: ~S.~@:>"
-					    class-name name))))
-	      `(setf (,accessor-name ,node) ,value)))))
-    `(let ((,node (make-instance 'jenkins.api:builder/shell
-				 ;; :data ,template-name
-				 )))
-       #+no (xloc:xml-> (stp:root ,template-name) ,node)
-       ,@(iter (for (name value) on attributes :by #'cddr)
-	       (collect (process-attribute name value)))
-       ,node)))
+(defmacro define-interface-implementation-macros (interface)
+  (let+ ((map-name        (format-symbol
+			   (symbol-package interface)
+			   "*CLASS->~A-NAME*" interface))
+	 (implementations (hash-table-keys
+			   (symbol-value map-name)))
+	 ((&flet process-implementation (class-name)
+	    (let+ (((&ign implementation)
+		    (split-sequence #\/ (string class-name)))
+		   (name (intern implementation)))
+	      (if (find-symbol (string implementation) :cl)
+		  (warn 'simple-style-warning
+			:format-control "~@<Implementation ~S of ~
+interface ~S would clash with ~S is in ~S package; skipping.~@:>"
+			:format-arguments (list class-name interface implementation :cl))
+		  `(define-model-class-macro
+		       (,name
+			:class-name ,class-name)))))))
+    `(progn
+       ,@(mapcar #'process-implementation implementations))))
 
-(defmacro copy-artifact ((&rest attributes &key &allow-other-keys))
-  "TODO(jmoringe): document"
-  ;;; TODO(jmoringe, 2012-12-12): kind
-  (let+ ((class-name    'jenkins.api:builder/copy-artifact)
-	 (template-name (make-template-name '#:builder/copy-artifact))
-	 ((&with-gensyms node))
-	 ((&flet process-attribute (name value)
-	    (check-type name symbol)
-
-	    (let ((accessor-name (or (find-symbol (string name) :jenkins.api)
-				     (error "~@<Unknown ~S attribute: ~S.~@:>"
-					    class-name name))))
-	      `(setf (,accessor-name ,node) ,value)))))
-    `(let ((,node (make-instance 'jenkins.api:builder/copy-artifact
-				 ;; :data ,template-name
-				 )))
-       #+no (xloc:xml-> (stp:root ,template-name) ,node)
-       ,@(iter (for (name value) on attributes :by #'cddr)
-	       (collect (process-attribute name value)))
-       ,node)))
+(define-interface-implementation-macros jenkins.api::scm)
+(define-interface-implementation-macros jenkins.api::builder)

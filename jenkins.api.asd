@@ -1,6 +1,6 @@
-;;; jenkins.api.asd ---
+;;; jenkins.api.asd --- System definition for the jenkins.api system.
 ;;
-;; Copyright (C) 2011, 2012 Jan Moringen
+;; Copyright (C) 2011, 2012, 2013 Jan Moringen
 ;;
 ;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 ;;
@@ -83,6 +83,7 @@
 
 		(:module     "dsl"
 		 :pathname   "src/dsl"
+		 :depends-on ("api")
 		 :serial     t
 		 :components ((:file     "package")
-			      (:file     "dsl")))))
+			      (:file     "macros")))))
