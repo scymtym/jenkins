@@ -75,6 +75,8 @@
 		 :pathname   "src/api"
 		 :serial     t
 		 :components ((:file     "package")
+			      (:file     "types")
+			      (:file     "conditions")
 			      (:file     "variables")
 			      (:file     "protocol")
 			      (:file     "conversion")
