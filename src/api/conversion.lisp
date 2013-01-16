@@ -1,6 +1,6 @@
 ;;; conversion.lisp --- Conversions used by the api module.
 ;;
-;; Copyright (C) 2012 Jan Moringen
+;; Copyright (C) 2012, 2013 Jan Moringen
 ;;
 ;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 ;;
@@ -55,6 +55,24 @@
 		       (type  (eql 'keyword))
 		       &key &allow-other-keys)
   (symbol-name value))
+
+
+;;; Keyword with downcasing
+;;
+
+(deftype keyword/downcase (&rest members)
+  (or 'keyword `(member ,@members)))
+
+(defmethod xloc:xml-> ((value string)
+		       (type  (eql 'keyword/downcase))
+		       &key &allow-other-keys)
+  (make-keyword (string-upcase value)))
+
+(defmethod xloc:->xml ((value symbol)
+		       (dest  (eql 'string))
+		       (type  (eql 'keyword/downcase))
+		       &key &allow-other-keys)
+  (string-downcase value))
 
 
 ;;; `equals-string/cons'

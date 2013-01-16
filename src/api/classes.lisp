@@ -364,7 +364,61 @@ marker VALUE."
    (:name-slot project-name)))
 
 (define-interface-implementations (publisher)
-  )
+  ((ssh      "jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin")
+   ()
+   (:name-slot nil))
+
+  ((warnings "hudson.plugins.warnings.WarningsPublisher")
+   ()
+   (:name-slot nil))
+
+  ((tasks "hudson.plugins.tasks.TasksPublisher"
+	  :plugin "tasks@4.35")
+   ((threshold-limit :type   keyword/downcase
+		     :xpath  "thresholdLimit/text()")
+    (keywords/low    :type   (list/comma string)
+		     :xpath  "low/text()")
+    (keywords/normal :type   (list/comma string)
+		     :xpath  "normal/text()")
+    (keywords/high   :type   (list/comma string)
+		     :xpath  "high/text()"))
+   (:name-slot nil))
+
+  ((archive-artifacts "hudson.tasks.ArtifactArchiver")
+   ((files         :type     (list/comma string)
+		   :xpath    "artifacts/text()")
+    (only-latests? :type boolean
+		   :xpath    "onlyLatest/text()"))
+   (:name-slot nil))
+
+  ((fingerprint "hudson.tasks.Fingerprinter")
+   ((targets          :type      (list/comma string))
+    (build-artifacts? :type      boolean
+		      :xpath     "recordBuildArtifacts/text()"))
+   (:name-slot targets))
+
+  ((sloccount "hudson.plugins.sloccount.SloccountPublisher"
+	      :plugin "sloccount@1.8")
+   ((pattern :type string))
+   (:name-slot pattern))
+
+  ((junit "hudson.tasks.junit.JUnitResultArchiver")
+   ((result-files     :type      string
+		      :xpath     "testResults/text()")
+    (keep-long-stdio? :type      boolean
+		      :xpath     "keepLongStdio/text()"))
+   (:name-slot result-files))
+
+  ((cobertura "hudson.plugins.cobertura.CoberturaPublisher"
+	      :plugin "cobertura@1.7.1")
+   ((report-file :type  string
+		 :xpath "coberturaReportFile/text()"))
+   (:name-slot report-file))
+
+  ((html "htmlpublisher.HtmlPublisher"
+	 :plugin "htmlpublisher@1.2")
+   ()
+   (:name-slot nil)))
 
 (define-model-class job ()
     ((description     :type     string)
@@ -392,6 +446,9 @@ marker VALUE."
 		      :xpath    "buildWrappers/hudson.plugins.setenv.SetEnvBuildWrapper/localVarText/text()")
      (builders        :type     builder
 		      :xpath    ("builders/*"
+				 :if-multiple-matches :all))
+     (publishers      :type     publisher
+		      :xpath    ("publishers/*"
 				 :if-multiple-matches :all))
      (warning-parsers :type     string/node
 		      :xpath    ("publishers/hudson.plugins.warnings.WarningsPublisher/consoleParsers/hudson.plugins.warnings.ConsoleParser/parserName"
