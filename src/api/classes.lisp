@@ -352,11 +352,16 @@ marker VALUE."
 
 (define-interface-implementations (publisher)
   ((ssh      "jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin")
-   ()
-   (:name-slot nil))
+   ((target           :type    string
+	              :xpath   "delegate/publishers/jenkins.plugins.publish__over__ssh.BapSshPublisher/configName/text()")
+    (remote-directory :type    string
+		      :xpath   "delegate/publishers/jenkins.plugins.publish__over__ssh.BapSshPublisher/transfers/jenkins.plugins.publish__over__ssh.BapSshTransfer/remoteDirectory/text()"))
+   (:name-slot target))
 
   ((warnings "hudson.plugins.warnings.WarningsPublisher")
-   ()
+   ((parsers :type     string/node
+	     :xpath    ("consoleParsers/hudson.plugins.warnings.ConsoleParser/parserName"
+			:if-multiple-matches :all)))
    (:name-slot nil))
 
   ((tasks "hudson.plugins.tasks.TasksPublisher"
@@ -408,52 +413,51 @@ marker VALUE."
    (:name-slot nil)))
 
 (define-model-class job ()
-    ((description     :type     string)
-     (keep/days       :type     (or (eql -1) non-negative-integer)
-		      :xpath    "logRotator/daysToKeep/text()")
-     (keep/count      :type     (or (eql -1) non-negative-integer)
-		      :xpath    "logRotator/numToKeep/text()")
-     (permissions     :type     string/node
-		      :xpath    ("properties/hudson.security.AuthorizationMatrixProperty/permission"
-				 :if-multiple-matches :all))
-     (redmine-url     :type     string
-		      :xpath    "properties/hudson.plugins.redmine.RedmineProjectProperty/redmineWebsite/text()")
-     (redmine-name    :type     string
-		      :xpath    "properties/hudson.plugins.redmine.RedmineProjectProperty/projectName/text()")
-     (children        :type     (list/comma string)
-		      :xpath    "publishers/hudson.tasks.BuildTrigger/childProjects/text()")
-     (repositories    :type     scm
-		      :xpath    ("scm"
-				 :if-multiple-matches :all)
-		      :optional? t)
-     (triggers        :type     trigger
-		      :xpath    ("triggers/*"
-				 :if-multiple-matches :all))
-     (environment     :type     (equals+newline/plist keyword string)
-		      :xpath    "buildWrappers/hudson.plugins.setenv.SetEnvBuildWrapper/localVarText/text()")
-     (builders        :type     builder
-		      :xpath    ("builders/*"
-				 :if-multiple-matches :all))
-     (publishers      :type     publisher
-		      :xpath    ("publishers/*"
-				 :if-multiple-matches :all))
-     (warning-parsers :type     string/node
-		      :xpath    ("publishers/hudson.plugins.warnings.WarningsPublisher/consoleParsers/hudson.plugins.warnings.ConsoleParser/parserName"
-				 :if-multiple-matches :all)) ;;; TODO(jmoringe, 2012-07-10): not correct
-     (slaves          :type     string/node
+    ((description                :type     string)
+     (children                   :type     (list/comma string)
+				 :xpath    "publishers/hudson.tasks.BuildTrigger/childProjects/text()")
+     (keep/days                  :type     (or (eql -1) non-negative-integer)
+		                 :xpath    "logRotator/daysToKeep/text()")
+     (keep/count                 :type     (or (eql -1) non-negative-integer)
+		                 :xpath    "logRotator/numToKeep/text()")
+     (block-on-downstream-build? :type boolean
+				 :xpath "blockBuildWhenDownstreamBuilding/text()")
+     (block-on-upstream-build?   :type boolean
+				 :xpath "blockBuildWhenUpstreamBuilding/text()")
+     ;; Interface-based children
+     (triggers                   :type     trigger
+				 :xpath    ("triggers/*"
+					    :if-multiple-matches :all))
+     (repository                 :type     scm
+				 :xpath    ("scm"))
+     (builders                   :type     builder
+		                 :xpath    ("builders/*"
+					    :if-multiple-matches :all))
+
+     (publishers                 :type     publisher
+				 :xpath    ("publishers/*"
+					    :if-multiple-matches :all))
+
+     ;; TODO Not sure about these
+     (slaves          :type     string/node ;; TODO(jmoringe, 2012-07-10): not correct
 		      :xpath    ("axes/hudson.matrix.LabelAxis[name/text()='label']/values/string"
 				 :if-multiple-matches :all)
 		      :optional? t)
-     (archive-files   :type     (list/comma string)
-		      :xpath    "publishers/hudson.tasks.ArtifactArchiver/artifacts/text()")
-     (archive-only-latests? :type boolean
-			    :xpath    "publishers/hudson.tasks.ArtifactArchiver/onlyLatest/text()")
-     (upload-target   :type     string
-		      :xpath    "publishers/jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin/delegate/publishers/jenkins.plugins.publish__over__ssh.BapSshPublisher/configName/text()"
-		       :optional? t)
-     (upload-directory :type    string
-		       :xpath   "publishers/jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin/delegate/publishers/jenkins.plugins.publish__over__ssh.BapSshPublisher/transfers/jenkins.plugins.publish__over__ssh.BapSshTransfer/remoteDirectory/text()"
-		       :optional? t))
+
+     (environment     :type     (equals+newline/plist keyword string)
+		      :xpath    "buildWrappers/hudson.plugins.setenv.SetEnvBuildWrapper/localVarText/text()")
+
+     (permissions     :type     string/node
+		      :xpath    ("properties/hudson.security.AuthorizationMatrixProperty/permission"
+				 :if-multiple-matches :all))
+
+     ;; TODO these will be moved into the appropriate interfaces
+     (redmine-instance :type     string
+		       :xpath    "properties/hudson.plugins.redmine.RedmineProjectProperty/redmineWebsite/text()")
+     (redmine-version :type     string
+		      :xpath    "properties/hudson.plugins.redmine.RedmineProjectProperty/redmineVersionNumber/text()")
+     (redmine-project :type     string
+		      :xpath    "properties/hudson.plugins.redmine.RedmineProjectProperty/projectName/text()"))
   (:get-func (lambda (id)      (job-config id)))
   (:put-func (lambda (id data) (setf (job-config id) data))))
 

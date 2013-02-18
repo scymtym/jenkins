@@ -55,28 +55,33 @@
    #:make-job
    #:delete-job
 
-   #:kind ; matrix or regular
+   #:kind                           ; matrix or regular; setfable
    #:description
    #:upstream
    #:children
-   #:repositories
-   #:environment
-   #:builders
-
    #:keep/days
    #:keep/count
-   #:slaves
-   #:warning-parsers ; not sure about this one
+   #:block-on-downstream-build?
+   #:block-on-upstream-build?
+
+   #:triggers                       ; Interface-based children
+   #:repository                     ; Note: only one repository
+   #:builders
+   #:publishers
+
+   #:slaves                         ; Not sure about these
+   #:environment
+   #:permissions
 
    #:copy-job/fixup
    #:build!
    #:enable!
    #:disable!
 
-   #:relate
+   #:relate                         ; Up/downstream relations
    #:unrelate)
 
-  ;; SCM
+  ;; SCM interface
   (:export
    #:scm/git
    #:url
@@ -91,7 +96,7 @@
    #:scm/bzr
    #:url)
 
-  ;; Trigger
+  ;; Trigger interface
   (:export
    #:trigger/scm
    #:spec
@@ -99,7 +104,7 @@
    #:trigger/timer
    #:spec)
 
-  ;; Builders
+  ;; Builder interface
   (:export
    #:builder/shell
    #:command
@@ -124,6 +129,38 @@
    #:filter
    #:target
    #:flatten?)
+
+  ;; Publisher interface
+  (:export
+   #:publisher/ssh
+   #:target
+   #:remote-directory
+
+   #:publisher/warnings
+   #:parsers
+
+   #:publisher/tasks
+   #:threshold-limit
+   #:keywords/low
+   #:keywords/normal
+   #:keywords/high
+
+   #:publisher/archive-artifacts
+   #:files
+   #:only-latests?
+
+   #:publisher/fingerprint
+   #:targets
+   #:build-artifacts?
+
+   #:publisher/junit
+   #:result-files
+   #:keep-long-stdio?
+
+   #:publisher/cobertura
+   #:report-file
+
+   #:publisher/html)
 
   ;; Build
   (:export
