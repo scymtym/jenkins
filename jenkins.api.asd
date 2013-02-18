@@ -59,10 +59,10 @@
   :version     #.(version/string)
   :license     "LLGPLv3; see COPYING file for details."
   :description "Bindings for Jenkins' REST API."
-  :depends-on  ((:version :alexandria      "0.0.0")
+  :depends-on  (:alexandria #+maybe-later (:version :alexandria      "0.0.0")
 		(:version :split-sequence  "1.1")
 		(:version :closer-mop      "0.61")
-		(:version :iterate         "1.4.4")
+		:iterate #+maybe-later (:version :iterate         "1.4.4")
 		(:version :let-plus        "0.1")
 		(:version :more-conditions "0.1.0")
 
